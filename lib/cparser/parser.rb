@@ -97,47 +97,49 @@ module CParser
     end
 
     symbols :ellipsis => '...',
-      :right_shift_assign => '>>=',
-      :left_shift_assign => '<<=',
-      :add_assign => '+=',
-      :subtract_assign => '-=',
-      :multiply_assign => '*=',
-      :divide_assign => '/=',
-      :modulus_assign => '%=',
-      :binary_and_assign => '&=',
-      :xor_assign => '^=',
-      :binary_or_assign => '|=',
-      :right_shift => '>>',
-      :left_shift => '<<',
-      :inc => '++',
-      :dec => '--',
-      :pointer_access => '->',
-      :logical_and => '&&',
-      :logical_or => '||',
-      :less_equal => '<=',
-      :greater_equal => '>=',
-      :equal => '==',
-      :not_equal => '!=',
-      :semicolon => ';',
-      :comma => ',',
-      :colon => ':',
-      :assign => '=',
-      :left_paren => '(',
-      :right_paren => ')',
-      :member_access => '.',
-      :binary_and => '&',
-      :negate => '!',
-      :inverse => '~',
-      :subtract => '-',
-      :add => '+',
-      :multiply => '*',
-      :divide => '/',
-      :modulus => '%',
-      :less => '<',
-      :greater => '>',
-      :xor => '^',
-      :binary_or => '|',
-      :question_mark => '?'
+            :right_shift_assign => '>>=',
+            :left_shift_assign => '<<=',
+            :add_assign => '+=',
+            :subtract_assign => '-=',
+            :multiply_assign => '*=',
+            :divide_assign => '/=',
+            :modulus_assign => '%=',
+            :binary_and_assign => '&=',
+            :xor_assign => '^=',
+            :binary_or_assign => '|=',
+            :inc => '++',
+            :dec => '--',
+            :pointer_access => '->',
+            :logical_and => '&&',
+            :logical_or => '||',
+            :less_equal => '<=',
+            :greater_equal => '>=',
+            :equal => '==',
+            :not_equal => '!=',
+            :semicolon => ';',
+            :comma => ',',
+            :colon => ':',
+            :left_paren => '(',
+            :right_paren => ')',
+            :member_access => '.',
+            :question_mark => '?'
+
+    rule(:assign) { str('=') >> str('=').absnt? >> spaces? }
+    rule(:add) { str('+') >> (str('+') | str('=')).absnt? >> spaces? }
+    rule(:subtract) { str('-') >> (str('-') | str('=')).absnt? >> spaces? }
+    rule(:negate) { str('!') >> str('=').absnt? >> spaces? }
+    rule(:multiply) { str('*') >> str('=').absnt? >> spaces? }
+    rule(:divide) { str('/') >> str('=').absnt? >> spaces? }
+    rule(:modulus) { str('%') >> str('=').absnt? >> spaces? }
+    rule(:less) { str('<') >> (str('<') | str('=')).absnt? >> spaces? }
+    rule(:greater) { str('>') >> (str('>') | str('=')).absnt? >> spaces? }
+    rule(:left_shift) { str('<<') >> str('=').absnt? >> spaces? }
+    rule(:right_shift) { str('>>') >> str('=').absnt? >> spaces? }
+    rule(:greater) { str('>') >> (str('>') | str('=')).absnt? >> spaces? }
+    rule(:binary_or) { str('|') >> (str('|') | str('=')).absnt? >> spaces? }
+    rule(:binary_and) { str('&') >> (str('&') | str('=')).absnt? >> spaces? }
+    rule(:xor) { str('^') >> str('=').absnt? >> spaces? }
+    rule(:inverse) { str('~') >> str('=').absnt? >> spaces? }
 
     rule(:left_brace) { (str('{') | str('<%')) >> spaces? }
     rule(:right_brace) { (str('}') | str('%>')) >> spaces? }
