@@ -1,0 +1,4 @@
+module CParser
+  # cparser version
+  VERSION = "0.1.0"
+end

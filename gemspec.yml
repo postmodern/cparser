@@ -1,0 +1,16 @@
+name: cparser
+summary: A pure Ruby ANSI C Parser.
+description: CParse is an ANSI C Parser written purely in Ruby.
+license: MIT
+authors: Postmodern
+email: postmodern.mod3@gmail.com
+homepage: http://github.com/postmodern/cparser
+has_yard: true
+
+dependencies:
+  parslet: ~> 1.0
+
+development_dependencies:
+  ore-tasks: ~> 0.3.0
+  rspec: ~> 2.3.0
+  yard: ~> 0.6.0
