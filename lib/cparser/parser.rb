@@ -52,20 +52,24 @@ module CParser
       :while
 
     rule(:identifier) {
-      (alpha >> (alpha | digit).repeat) >> spaces?
+      (alpha >> (alpha | digit).repeat).as(:identifier) >> spaces?
     }
 
     rule(:hex_constant) {
-      match('0[xX]') >> xdigit.repeat(1) >> int_size? >> spaces?
+      (match('0[xX]') >> xdigit.repeat(1) >> int_size?).as(:hex) >> spaces?
     }
     rule(:octal_constant) {
-      str('0') >> digits >> int_size? >> spaces?
+      (str('0') >> digits >> int_size?).as(:octal) >> spaces?
     }
-    rule(:decimal_constant) { digits >> int_size.maybe >> spaces? }
+    rule(:decimal_constant) {
+      (digits >> int_size.maybe).as(:decimal) >> spaces?
+    }
     rule(:string_constant) {
-      alpha.maybe >> str("'") >>
-      (match("\\.") | match("[^\\']")).repeat(1) >>
-      str("'") >> spaces?
+      (
+        str('L').maybe >> str("'") >>
+        (match("\\.") | match("[^\\']")).repeat(1) >>
+        str("'")
+      ).as(:string) >> spaces?
     }
 
     rule(:float_constant) {
@@ -73,7 +77,7 @@ module CParser
         (digits >> e >> float_size?) |
         (digits? >> str('.') >> digits >> e? >> float_size?) |
         (digits >> str('.') >> digits? >> e? >> float_size?)
-      ) >> spaces?
+      ).as(:float) >> spaces?
     }
 
     rule(:constant) {
@@ -85,9 +89,11 @@ module CParser
     }
 
     rule(:string_literal) {
-      alpha.maybe >> str('"') >>
-      (match("\\.") | match('[^\\"]')).repeat >>
-      str('"') >> spaces?
+      (
+        str('L').maybe >> str('"') >>
+        (match("\\.") | match('[^\\"]')).repeat >>
+        str('"')
+      ).as(:string) >> spaces?
     }
 
     def self.symbols(symbols)
@@ -97,25 +103,6 @@ module CParser
     end
 
     symbols :ellipsis => '...',
-            :right_shift_assign => '>>=',
-            :left_shift_assign => '<<=',
-            :add_assign => '+=',
-            :subtract_assign => '-=',
-            :multiply_assign => '*=',
-            :divide_assign => '/=',
-            :modulus_assign => '%=',
-            :binary_and_assign => '&=',
-            :xor_assign => '^=',
-            :binary_or_assign => '|=',
-            :inc => '++',
-            :dec => '--',
-            :pointer_access => '->',
-            :logical_and => '&&',
-            :logical_or => '||',
-            :less_equal => '<=',
-            :greater_equal => '>=',
-            :equal => '==',
-            :not_equal => '!=',
             :semicolon => ';',
             :comma => ',',
             :colon => ':',
@@ -124,35 +111,80 @@ module CParser
             :member_access => '.',
             :question_mark => '?'
 
-    rule(:assign) { str('=') >> str('=').absnt? >> spaces? }
-    rule(:add) { str('+') >> (str('+') | str('=')).absnt? >> spaces? }
-    rule(:subtract) { str('-') >> (str('-') | str('=')).absnt? >> spaces? }
-    rule(:negate) { str('!') >> str('=').absnt? >> spaces? }
-    rule(:multiply) { str('*') >> str('=').absnt? >> spaces? }
-    rule(:divide) { str('/') >> str('=').absnt? >> spaces? }
-    rule(:modulus) { str('%') >> str('=').absnt? >> spaces? }
-    rule(:less) { str('<') >> (str('<') | str('=')).absnt? >> spaces? }
-    rule(:greater) { str('>') >> (str('>') | str('=')).absnt? >> spaces? }
-    rule(:left_shift) { str('<<') >> str('=').absnt? >> spaces? }
-    rule(:right_shift) { str('>>') >> str('=').absnt? >> spaces? }
-    rule(:greater) { str('>') >> (str('>') | str('=')).absnt? >> spaces? }
-    rule(:binary_or) { str('|') >> (str('|') | str('=')).absnt? >> spaces? }
-    rule(:binary_and) { str('&') >> (str('&') | str('=')).absnt? >> spaces? }
-    rule(:xor) { str('^') >> str('=').absnt? >> spaces? }
-    rule(:inverse) { str('~') >> str('=').absnt? >> spaces? }
-
     rule(:left_brace) { (str('{') | str('<%')) >> spaces? }
     rule(:right_brace) { (str('}') | str('%>')) >> spaces? }
 
     rule(:left_bracket) { (str('[') | str('<:')) >> spaces? }
     rule(:right_bracket) { (str(']') | str(':>')) >> spaces? }
 
+    def self.operators(operators={})
+      trailing_chars = Hash.new { |hash,symbol| hash[symbol] = [] }
+
+      operators.each_value do |symbol|
+        operators.each_value do |op|
+          if op[0,symbol.length] == symbol
+            char = op[symbol.length,1]
+
+            unless (char.nil? || char.empty?)
+              trailing_chars[symbol] << char
+            end
+          end
+        end
+      end
+
+      operators.each do |name,symbol|
+        trailing = trailing_chars[symbol]
+
+        if trailing.empty?
+          rule(name) { str(symbol).as(:operator) >> spaces? }
+        else
+          pattern = "[#{Regexp.escape(trailing.join)}]"
+
+          rule(name) {
+            (str(symbol) >> match(pattern).absnt?).as(:operator) >> spaces?
+          }
+        end
+      end
+    end
+
+    operators :right_shift_assign => '>>=',
+              :left_shift_assign => '<<=',
+              :add_assign => '+=',
+              :subtract_assign => '-=',
+              :multiply_assign => '*=',
+              :divide_assign => '/=',
+              :modulus_assign => '%=',
+              :binary_and_assign => '&=',
+              :xor_assign => '^=',
+              :binary_or_assign => '|=',
+              :inc => '++',
+              :dec => '--',
+              :pointer_access => '->',
+              :logical_and => '&&',
+              :logical_or => '||',
+              :less_equal => '<=',
+              :greater_equal => '>=',
+              :equal => '==',
+              :not_equal => '!=',
+              :assign => '=',
+              :add => '+',
+              :subtract => '-',
+              :multiply => '*',
+              :divide => '/',
+              :modulus => '%',
+              :less => '<',
+              :greater => '>',
+              :negate => '!',
+              :binary_or => '|',
+              :binary_and => '&',
+              :xor => '^',
+              :left_shift => '<<',
+              :right_shift => '>>',
+              :inverse => '~'
+
     rule(:primary_expression) {
-      (
-        identifier.as(:identifier) |
-        constant.as(:constant) |
-        string_literal.as(:literal_string)
-      ) | (left_paren >> expression >> right_paren)
+      (identifier | constant | string_literal) |
+      (left_paren >> expression >> right_paren)
     }
 
     rule(:postfix_expression) {
@@ -179,9 +211,9 @@ module CParser
     rule(:unary_expression) {
       sizeof_expression.as(:sizeof) |
       postfix_expression |
-      (inc >> unary_expression.as(:inc)) |
-      (dec >> unary_expression.as(:dec)) |
-      (unary_operator.as(:op) >> cast_expression).as(:unary)
+      (inc >> unary_expression).as(:inc) |
+      (dec >> unary_expression).as(:dec) |
+      (unary_operator >> cast_expression).as(:unary)
     }
 
     rule(:unary_operator) {
@@ -198,7 +230,7 @@ module CParser
     rule(:multiplicative_expression) {
       (
         cast_expression.as(:left) >>
-        (multiply | divide | modulus).as(:op) >>
+        (multiply | divide | modulus) >>
         multiplicative_expression.as(:right)
       ).as(:multiplicative) | cast_expression
     }
@@ -206,7 +238,7 @@ module CParser
     rule(:additive_expression) {
       (
         multiplicative_expression.as(:left) >>
-        (add | subtract).as(:op) >>
+        (add | subtract) >>
         additive_expression.as(:right)
       ).as(:additive) | multiplicative_expression
     }
@@ -214,7 +246,7 @@ module CParser
     rule(:shift_expression) {
       (
         additive_expression.as(:left) >>
-        (left_shift | right_shift).as(:op) >>
+        (left_shift | right_shift) >>
         shift_expression.as(:right)
       ).as(:shift) | additive_expression
     }
@@ -222,7 +254,7 @@ module CParser
     rule(:relational_expression) {
       (
         shift_expression.as(:left) >>
-        (less | greater | less_equal | greater_equal).as(:op) >>
+        (less | greater | less_equal | greater_equal) >>
         relational_expression.as(:right)
       ).as(:relational) | shift_expression
     }
@@ -230,7 +262,7 @@ module CParser
     rule(:equality_expression) {
       (
         relational_expression.as(:left) >>
-        (equal | not_equal).as(:op) >>
+        (equal | not_equal) >>
         equality_expression.as(:right)
       ).as(:equality) | relational_expression
     }
@@ -286,7 +318,7 @@ module CParser
     rule(:assignment_expression) {
       (
         unary_expression.as(:left) >>
-        assignment_operator.as(:op) >>
+        assignment_operator >>
         assignment_expression.as(:right)
       ).as(:assign) | conditional_expression
     }
